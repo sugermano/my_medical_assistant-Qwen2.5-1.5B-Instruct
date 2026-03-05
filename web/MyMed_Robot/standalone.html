@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智医助手 - AI药师咨询</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            height: 90vh;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.assistant {
+            justify-content: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            word-wrap: break-word;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .user .message-bubble {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .assistant .message-bubble {
+            background: white;
+            border: 1px solid #e9ecef;
+            color: #333;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        .user .message-time {
+            color: rgba(255,255,255,0.8);
+        }
+
+        .report-card {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 10px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            max-width: 85%;
+        }
+
+        .report-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .report-section {
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .report-section-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .report-section-content {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .drug-item {
+            background: rgba(255,255,255,0.15);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .drug-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        .drug-detail {
+            font-size: 14px;
+            margin: 4px 0;
+            padding-left: 12px;
+        }
+
+        .warning-box {
+            background: rgba(255, 59, 48, 0.2);
+            border-left: 4px solid #ff3b30;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+
+        .input-area {
+            border-top: 1px solid #e9ecef;
+            background: white;
+            padding: 20px;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-box {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-box:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status-bar {
+            background: #f8f9fa;
+            color: #667eea;
+            text-align: center;
+            padding: 8px;
+            font-size: 13px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.connected {
+            background: #28a745;
+            box-shadow: 0 0 8px #28a745;
+        }
+
+        .status-indicator.disconnected {
+            background: #dc3545;
+        }
+
+        .feedback-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .feedback-modal.active {
+            display: flex;
+        }
+
+        .feedback-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .feedback-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #333;
+        }
+
+        .rating-stars {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .star {
+            font-size: 32px;
+            color: #ddd;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .star:hover,
+        .star.selected {
+            color: #ffc107;
+            transform: scale(1.2);
+        }
+
+        .feedback-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            resize: vertical;
+            min-height: 100px;
+            font-size: 14px;
+            font-family: inherit;
+            margin-bottom: 15px;
+        }
+
+        .feedback-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .feedback-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel {
+            background: #e9ecef;
+            color: #666;
+        }
+
+        .btn-cancel:hover {
+            background: #dee2e6;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .loading-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 15px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #999;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                max-width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            .message-bubble {
+                max-width: 85%;
+            }
+
+            .report-card {
+                max-width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🩺 小团医生</h1>
+            <p>您的AI健康助手 - 智能问诊 · 用药建议 · 安全风控</p>
+        </div>
+        
+        <div class="chat-container" id="chatContainer"></div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    id="userInput" 
+                    class="input-box" 
+                    placeholder="请描述您的症状或问题..." 
+                    autocomplete="off">
+                <button id="sendButton" class="send-button">发送</button>
+            </div>
+            <div class="status-bar">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText">连接中...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="feedback-modal" id="feedbackModal">
+        <div class="feedback-content">
+            <div class="feedback-title">请为本次咨询评分</div>
+            <div class="rating-stars" id="ratingStars">
+                <span class="star" data-rating="1">★</span>
+                <span class="star" data-rating="2">★</span>
+                <span class="star" data-rating="3">★</span>
+                <span class="star" data-rating="4">★</span>
+                <span class="star" data-rating="5">★</span>
+            </div>
+            <textarea 
+                class="feedback-textarea" 
+                id="feedbackText" 
+                placeholder="请留下您的宝贵意见...（可选）"></textarea>
+            <div class="feedback-buttons">
+                <button class="btn btn-cancel" id="cancelFeedback">取消</button>
+                <button class="btn btn-submit" id="submitFeedback">提交</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MedicalChatApp {
+            constructor() {
+                this.ws = null;
+                this.sessionId = this.generateSessionId();
+                this.isConnected = false;
+                this.currentRating = 0;
+                this.isWaitingForFeedback = false;
+                
+                this.initElements();
+                this.initEventListeners();
+                this.connectWebSocket();
+            }
+
+            generateSessionId() {
+                return 'sess_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+            }
+
+            initElements() {
+                this.chatContainer = document.getElementById('chatContainer');
+                this.userInput = document.getElementById('userInput');
+                this.sendButton = document.getElementById('sendButton');
+                this.statusIndicator = document.getElementById('statusIndicator');
+                this.statusText = document.getElementById('statusText');
+                this.feedbackModal = document.getElementById('feedbackModal');
+                this.ratingStars = document.querySelectorAll('.star');
+                this.feedbackText = document.getElementById('feedbackText');
+            }
+
+            initEventListeners() {
+                this.sendButton.addEventListener('click', () => this.sendMessage());
+                this.userInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+
+                this.ratingStars.forEach(star => {
+                    star.addEventListener('click', (e) => {
+                        this.setRating(parseInt(e.target.dataset.rating));
+                    });
+                });
+
+                document.getElementById('submitFeedback').addEventListener('click', () => {
+                    this.submitFeedback();
+                });
+
+                document.getElementById('cancelFeedback').addEventListener('click', () => {
+                    this.closeFeedbackModal();
+                });
+            }
+
+            connectWebSocket() {
+                const wsUrl = `ws://localhost:8000/ws/medical/${this.sessionId}`;
+                
+                try {
+                    this.ws = new WebSocket(wsUrl);
+                    
+                    this.ws.onopen = () => {
+                        console.log('WebSocket 连接成功');
+                        this.updateStatus(true, '已连接');
+                        this.isConnected = true;
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        this.handleMessage(event.data);
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket 错误:', error);
+                        this.updateStatus(false, '连接错误');
+                    };
+                    
+                    this.ws.onclose = () => {
+                        console.log('WebSocket 连接已关闭');
+                        this.updateStatus(false, '连接已断开');
+                        this.isConnected = false;
+                    };
+                } catch (error) {
+                    console.error('创建 WebSocket 连接失败:', error);
+                    this.updateStatus(false, '连接失败');
+                }
+            }
+
+            updateStatus(connected, text) {
+                this.statusIndicator.className = `status-indicator ${connected ? 'connected' : 'disconnected'}`;
+                this.statusText.textContent = text;
+            }
+
+            handleMessage(data) {
+                try {
+                    const message = JSON.parse(data);
+                    const { role, type, content } = message;
+
+                    if (role === 'assistant') {
+                        this.removeTypingIndicator();
+                        
+                        if (type === 'text') {
+                            this.addTextMessage('assistant', content);
+                            
+                            if (content.includes('满意吗') || content.includes('评价')) {
+                                this.isWaitingForFeedback = true;
+                                this.showFeedbackModal();
+                            }
+                        } else if (type === 'report_card') {
+                            this.addReportCard(content);
+                        }
+                    }
+                } catch (error) {
+                    console.error('解析消息失败:', error);
+                    this.addTextMessage('assistant', '收到消息但解析失败');
+                }
+            }
+
+            sendMessage() {
+                const message = this.userInput.value.trim();
+                
+                if (!message || !this.isConnected) {
+                    return;
+                }
+
+                this.addTextMessage('user', message);
+                this.userInput.value = '';
+                
+                this.showTypingIndicator();
+
+                try {
+                    this.ws.send(JSON.stringify({ message }));
+                } catch (error) {
+                    console.error('发送消息失败:', error);
+                    this.removeTypingIndicator();
+                    this.addTextMessage('assistant', '发送失败，请重试');
+                }
+            }
+
+            addTextMessage(role, content) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${role}`;
+                
+                const bubble = document.createElement('div');
+                bubble.className = 'message-bubble';
+                bubble.textContent = content;
+                
+                const time = document.createElement('div');
+                time.className = 'message-time';
+                time.textContent = new Date().toLocaleTimeString('zh-CN', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                bubble.appendChild(time);
+                messageDiv.appendChild(bubble);
+                this.chatContainer.appendChild(messageDiv);
+                this.scrollToBottom();
+            }
+
+            addReportCard(reportData) {
+                try {
+                    const report = typeof reportData === 'string' ? JSON.parse(reportData) : reportData;
+                    
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'message assistant';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'report-card';
+                    
+                    let html = '<div class="report-title">📋 用药建议报告</div>';
+                    
+                    if (report.summary_analysis) {
+                        html += `
+                            <div class="report-section">
+                                <div class="report-section-title">🔍 症状分析</div>
+                                <div class="report-section-content">${report.summary_analysis}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    if (report.medical_warning) {
+                        html += `
+                            <div class="warning-box">
+                                <strong>⚠️ 重要提示:</strong><br>${report.medical_warning}
+                            </div>
+                        `;
+                    }
+                    
+                    if (report.recommended_products && Array.isArray(report.recommended_products)) {
+                        html += '<div class="report-section"><div class="report-section-title">💊 推荐药品</div>';
+                        report.recommended_products.forEach((drug, index) => {
+                            html += `
+                                <div class="drug-item">
+                                    <div class="drug-name">${index + 1}. ${drug.name}</div>
+                                    ${drug.dosage ? `<div class="drug-detail">📌 用量: ${drug.dosage}</div>` : ''}
+                                    ${drug.instructions ? `<div class="drug-detail">📝 用法: ${drug.instructions}</div>` : ''}
+                                    ${drug.precautions ? `<div class="drug-detail">⚠️ 注意: ${drug.precautions}</div>` : ''}
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                    }
+                    
+                    card.innerHTML = html;
+                    messageDiv.appendChild(card);
+                    this.chatContainer.appendChild(messageDiv);
+                    this.scrollToBottom();
+                } catch (error) {
+                    console.error('显示报告卡片失败:', error);
+                    this.addTextMessage('assistant', '报告生成失败');
+                }
+            }
+
+            showTypingIndicator() {
+                const indicator = document.createElement('div');
+                indicator.className = 'message assistant';
+                indicator.id = 'typingIndicator';
+                indicator.innerHTML = `
+                    <div class="message-bubble">
+                        <div class="typing-indicator">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                `;
+                this.chatContainer.appendChild(indicator);
+                this.scrollToBottom();
+            }
+
+            removeTypingIndicator() {
+                const indicator = document.getElementById('typingIndicator');
+                if (indicator) {
+                    indicator.remove();
+                }
+            }
+
+            showFeedbackModal() {
+                this.feedbackModal.classList.add('active');
+            }
+
+            closeFeedbackModal() {
+                this.feedbackModal.classList.remove('active');
+                this.resetFeedback();
+            }
+
+            setRating(rating) {
+                this.currentRating = rating;
+                this.ratingStars.forEach((star, index) => {
+                    if (index < rating) {
+                        star.classList.add('selected');
+                    } else {
+                        star.classList.remove('selected');
+                    }
+                });
+            }
+
+            resetFeedback() {
+                this.currentRating = 0;
+                this.feedbackText.value = '';
+                this.ratingStars.forEach(star => star.classList.remove('selected'));
+            }
+
+            submitFeedback() {
+                if (this.currentRating === 0) {
+                    alert('请先选择评分');
+                    return;
+                }
+
+                const feedbackMessage = `${this.currentRating}分${this.feedbackText.value ? '，' + this.feedbackText.value : ''}`;
+                
+                this.closeFeedbackModal();
+                this.addTextMessage('user', feedbackMessage);
+                
+                try {
+                    this.ws.send(JSON.stringify({ message: feedbackMessage }));
+                } catch (error) {
+                    console.error('提交反馈失败:', error);
+                }
+            }
+
+            scrollToBottom() {
+                this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+            }
+        }
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            new MedicalChatApp();
+        });
+    </script>
+</body>
+</html>
